@@ -31,19 +31,23 @@ def model_dist(m,b,xlst,ylst):
 
 def col_evo_weights(z):
     #[gr,ri,iz,rz]
-    if z<0.35:
-        w = [1.33,0.33,0,0.33]
-    if z>=0.35 and z<0.75:
-        w = [0,0.66,0.25,0.875]
-    if z>=0.75:# and z<0.65:
-        w = [0,0.33,1,0.66]
     #w = [0.0,0.0,1.0,0.0]
 
+    #if z<0.35:
+    #    w = [1.33,0.33,0,0.33]
+    #if z>=0.35 and z<0.75:
+    #    w = [0,0.66,0.25,0.875]
+    #if z>=0.75:
+    #    w = [0,0.33,1,0.66]
 
-    #if z>=0.65 and z<0.8:
-    #    w = [0,0,0.66,1]
-    #if z>=0.8:
-    #    w = [0,0,1,0.66]
+    if z<0.36:
+        w = [1.33,0.33,0,0.33]
+    if z>=0.36 and z<0.6:
+        w = [0,1,0.25,1]
+    if z>=0.6 and z<0.76:
+        w = [0,0.5,0.25,1.25]
+    if z>=0.76:
+        w = [0,0,1.25,0.33]
     return w
 
 def weighted_avg_and_std(values, weights):
@@ -63,7 +67,7 @@ init_RA= [65.7490,356.1481, 27.7898, 26.1795, 90.0614, 359.7075, 72.9661, 58.561
 init_DEC= [-46.1436,-42.41, -56.911, -48.1281, -43.8879, -61.4862, -49.8796, -59.0733, -53.5038, -49.4738, -55.3138, -59.0814, -50.4394, -57.1643, -43.2992, -50.3236]
 init_brick_lst = [["0657m462","0657m460"],["3560m427","3561m422","3561m425","3564m422","3564m425","3564m427"],["0276m570","0278m567","0278m572","0280m570"],["0259m480","0260m482","0262m480","0263m482"],["0898m437","0898m440","0900m442","0901m437","0901m440","0903m442"],["3597m612","3597m615","3597m617"],["0729m500","0730m497","0730m502","0733m500"],["0586m590","0586m592"],["0696m532","0696m535","0696m537","0700m532","0700m537","0701m535"],["0543m492","0543m495","0545m497","0546m495","0547m492"],["0175m550","0176m552","0177m555","0180m550","0181m552"],["0238m590","0240m592","0243m590"],["0804m502","0804m505","0805m507","0808m502","0808m505"],["3148m575","3150m570","3151m572","3153m575","3154m570"],["0928m430","0929m432","0929m435","0932m430","0932m432","0932m435"],["0874m502","0874m505","0876m500","0878m502","0878m505"]]
 init_cluster = ['SPT-CLJ0422-4608','SPT-CLJ2344-4224', 'SPT-CLJ0151-5654', 'SPT-CLJ0144-4807', 'SPT-CLJ0600-4353', 'SPT-CLJ2358-6129', 'SPT-CLJ0451-4952', 'SPT-CLJ0354-5904', 'SPT-CLJ0439-5330', 'SPT-CLJ0337-4928', 'SPT-CLJ0111-5518', 'SPT-CLJ0135-5904', 'SPT-CLJ0522-5026', 'SPT-CLJ2100-5708', 'SPT-CLJ0612-4317', 'SPT-CLJ0550-5019']
-init_r200 = [2.79,5.44,5.54,5.27, 5.4,4.92,4.34,4.61,4.23,3.59,3.23,3.57,3.51, 2.8,3.73, 2.9]*u.arcmin
+init_r200 = [2.79,5.44,5.54,5.27, 5.4,4.92,4.34,4.61,4.23,3.59,3.23,3.57,3.51, 3.6,3.73, 2.9]*u.arcmin
 cols = ["release","brickid","brickname","objid","ra","dec","type","flux_g","flux_r","flux_i","flux_z","flux_ivar_g","flux_ivar_r","flux_ivar_i","flux_ivar_z","mw_transmission_g","mw_transmission_r","mw_transmission_i","mw_transmission_z"]
 s = 2.0   #sigmas for sigmaclipping
 r2cut = 0.5   #how many r200
@@ -97,7 +101,6 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
         #crt["m_i"] = 22.5-2.5*np.log10(crt["flux_i"])
         #crt["m_z"] = 22.5-2.5*np.log10(crt["flux_z"])
         
-
         crt = crt[np.isnan(crt["m_g"])==False]    #remove nan values
         crt = crt[np.isnan(crt["m_r"])==False]
         crt = crt[np.isnan(crt["m_i"])==False]
@@ -159,8 +162,9 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
         zblab = ["g","r","i","r"]#,"g"]
         res_lst = []
         lab_lst = []
+        sig_lst = []
         for mredder, mbluer, lcut, rlab, blab in zip(mr,mb,zlcut,zrlab,zblab):
-            lcrt = crt[crt["m_"+rlab]<=lcut+3]
+            lcrt = crt[crt["m_"+rlab]<=lcut+2]
             lcrt = lcrt[lcrt["m_"+rlab]>=lcut-4]
             lcrt = lcrt[lcrt["mag_"+rlab+"_err"]<0.1]    #sig_mag < 0.1 hennig17
             redder = np.array(lcrt["m_"+rlab])
@@ -172,6 +176,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
                 if len(lcrt)!=0:
                     lcrt = Table(lcrt[0])
                     lcrt.remove_row(0)
+                sig_lst += [0.0]
                 res_lst += [lcrt]
                 lab_lst += [blab+rlab]
                 continue
@@ -195,6 +200,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
                 if len(clip)!=0:
                     clip = Table(clip[0])
                     clip.remove_row(0)
+                sig_lst += [0.0]
                 res_lst += [clip]
                 lab_lst += [blab+rlab]
                 continue
@@ -207,7 +213,10 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
             cont = 0
             #---3sigmaclipping
             while True:
-                rcs, sig = weighted_avg_and_std(clip["devs"],weights=clip["devs_err"]**(-1)) 
+                try:
+                    rcs, sig = weighted_avg_and_std(clip["devs"],weights=clip["devs_err"]**(-1)) 
+                except:
+                    pass
                 #rcs = st.biweight_location(clip["devs"],M=np.array([rcs]))  
                 #sig = st.biweight_scale(clip["devs"],M=np.array([sig]))   #---Sigma Biweight
                 rej = clip[abs(clip["devs"]-rcs) >= (s*sig)]   #----rejected_galaxies
@@ -220,9 +229,11 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
                 if len(clip)!=0: 
                     clip = Table(clip[0])
                     clip.remove_row(0)
+                sig_lst += [0.0]
                 res_lst += [clip]
                 lab_lst += [blab+rlab]
                 continue
+            sig_lst += [sig]
             res_lst += [clip]
             lab_lst += [blab+rlab]
             ######################################################
@@ -273,7 +284,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
         #glakoon = join(crt,grand_tab,"N_ID")
         #thing = np.sum(glakoon["res_sum"]**2)/len(glakoon)-6
         ########################################################
-        zcl_lst += [[cmr["col1"][i],chi2]]
+        zcl_lst += [[cmr["col1"][i],chi2,]]
     ztab = Table(np.reshape(zcl_lst,[len(zcl_lst),2]))
 
     plt.clf()
@@ -318,7 +329,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
     res_lst = []
     lab_lst = []
     for mredder, mbluer, lcut, rlab, blab in zip(mr,mb,zlcut,zrlab,zblab):
-        lcrt = crt[crt["m_"+rlab]<=lcut+3]
+        lcrt = crt[crt["m_"+rlab]<=lcut+2]
         lcrt = lcrt[lcrt["m_"+rlab]>=lcut-4]
         lcrt = lcrt[lcrt["mag_"+rlab+"_err"]<0.1]    #sig_mag < 0.1 hennig17
         redder = np.array(lcrt["m_"+rlab])
@@ -345,7 +356,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
         sig_proj2 = (np.sqrt(bluerr**2 + rederr**2)*np.cos(theta))**2 + (rederr*np.sin(theta))**2
         sig_int2 = 0.03**2            #hennig17
         sig_col2 = sig_proj2 + sig_int2   #estimate ortogonal sigma2
-        clip = Table([lcrt["N_ID"],devs,redder,real_yrcs,model_yrcs],names=["N_ID","devs","redder","real_yrcs","model_yrcs"])
+        clip = Table([lcrt["N_ID"],devs,np.sqrt(sig_proj2),redder,real_yrcs,model_yrcs],names=["N_ID","devs","devs_err","redder","real_yrcs","model_yrcs"])
         clip = clip[abs(clip["devs"])<=0.22]      #work only with data within +-0.22 from model  (lopez-cruz##)
         if len(clip)<10:
             if len(clip)!=0:
@@ -363,8 +374,12 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
         cont = 0
         #---3sigmaclipping
         while True:
-            rcs = st.biweight_location(clip["devs"],M=np.array([rcs]))
-            sig = st.biweight_scale(clip["devs"],M=np.array([sig]))   #---Sigma Biweight
+            try:
+                rcs, sig = weighted_avg_and_std(clip["devs"],weights=clip["devs_err"]**(-1))
+            except:
+                pass
+            #rcs = st.biweight_location(clip["devs"],M=np.array([rcs]))  
+            #sig = st.biweight_scale(clip["devs"],M=np.array([sig]))   #---Sigma Biweight
             rej = clip[abs(clip["devs"]-rcs) >= (s*sig)]   #----rejected_galaxies
             if len(rej) == 0:      #---when there are no rejected galaxies end the iteration and calculate sigma error
                 #print("NUMBER OF ITERATIONS: "+str(cont))
@@ -388,7 +403,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
     rlab = band[1]
     blab = band[0]
     lcut = [cmr["col16"][i],cmr["col17"][i],cmr["col18"][i],cmr["col18"][i],cmr["col18"][i]][wid.index(np.max(wid))]
-    lcrt = crt[crt["m_"+rlab]<=lcut+3]
+    lcrt = crt[crt["m_"+rlab]<=lcut+2]
     lcrt = lcrt[lcrt["m_"+rlab]>=lcut-4]
     lcrt = lcrt[lcrt["mag_"+rlab+"_err"]<0.1]    #sig_mag < 0.1 hennig17
     redder = np.array(lcrt["m_"+rlab])
@@ -466,7 +481,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
     truecat[:2] = True
     truecat[2:] = False
     redgal["is_bcg"] = Table.Column(truecat,dtype="bool")    #create column denoting BCG
-    redgal.write(cluster+"/"+cluster+"_redsequence.cat",format="ascii")   #save table
+    redgal.write(cluster+"/"+cluster+"_redsequence.cat",format="ascii",overwrite=True)   #save table
     #########ds9reg#########
     t = open(cluster+"/"+cluster+"_bcg.reg","w")
     t.write("# Region file format: DS9 version 4.1\n")
@@ -529,8 +544,13 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
 pztab = Table([init_cluster,pz_lst])
 pztab.write("photo-z",format="ascii")
 
+#crt = Table.read("Datatable.latex",format="latex")
+#crt["col0"] = ("SPT-CL"+" SPT-CL".join(crt["SPT-CL"])).split(" ")
+#crt = join(pztab,crt)
+#crt.sort("z")
+#crt.rename_column("col1","photo-z")
 #plt.clf()
-#ax_scatter = plt.axes([0.1,0.4,0.835,0.56])
+#ax_scatter = plt.axes([0.1,0.3,0.82,0.56])
 #ax_scatter.plot(np.linspace(0,1),np.linspace(0,1),color="black")
 #ax_scatter.scatter(crt["z"],crt["photo-z"])
 ##plt.errorbar(crt["z"],crt["photo-z"],xerr=crt["z_err"],fmt="none",color="black",capsize=1)
@@ -539,7 +559,7 @@ pztab.write("photo-z",format="ascii")
 #ax_scatter.set_xlabel("spec-z")
 #ax_scatter.set_ylabel("photo-z")
 #ax_scatter.get_xaxis().set_visible(False)
-#ax_res = plt.axes([0.1,0.2,0.835,0.2])
+#ax_res = plt.axes([0.1,0.1,0.82,0.2])
 #ax_res.scatter(crt["z"],(crt["photo-z"]-crt["z"])/(1+crt["z"]))
 #ax_res.plot(np.linspace(0,1,10),np.zeros(10),color="black")
 #ax_res.set_xlim([0.2,0.8])
