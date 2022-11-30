@@ -40,14 +40,21 @@ def col_evo_weights(z):
     #if z>=0.75:
     #    w = [0,0.33,1,0.66]
 
-    if z<0.36:
-        w = [1.33,0.33,0,0.33]
-    if z>=0.36 and z<0.6:
-        w = [0,1,0.25,1]
-    if z>=0.6 and z<0.76:
-        w = [0,0.5,0.25,1.25]
-    if z>=0.76:
-        w = [0,0,1.25,0.33]
+    # We need something simple. Why using 4 windows?
+    #if z<0.36:
+    #    w = [1.33,0.33,0,0.33]
+    #if z>=0.36 and z<0.6:
+    #    w = [0,1,0.25,1]
+    #if z>=0.6 and z<0.76:
+    #    w = [0,0.5,0.25,1.25]
+    #if z>=0.76:
+    #    w = [0,0,1.25,0.33]
+    if z<0.35:
+        w = [2,0,0,0]
+    if z>=0.35 and z<0.75:
+        w = [0,2,0,0]
+    if z>=0.75:
+        w = [0,0,2,0]
     return w
 
 def weighted_avg_and_std(values, weights):
