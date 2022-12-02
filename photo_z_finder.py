@@ -78,6 +78,12 @@ init_r200 = [2.79,5.44,5.54,5.27, 5.4,4.92,4.34,4.61,4.23,3.59,3.23,3.57,3.51, 3
 cols = ["release","brickid","brickname","objid","ra","dec","type","flux_g","flux_r","flux_i","flux_z","flux_ivar_g","flux_ivar_r","flux_ivar_i","flux_ivar_z","mw_transmission_g","mw_transmission_r","mw_transmission_i","mw_transmission_z"]
 s = 2.0   #sigmas for sigmaclipping
 r2cut = 0.5   #how many r200
+#icluster = 2   #use this for single SPT cluster iteration
+#init_RA = [init_RA[icluster]]
+#init_DEC = [init_DEC[icluster]]
+#init_brick_lst = [init_brick_lst[icluster]]
+#init_cluster = [init_cluster[icluster]]
+#init_r200 = [init_r200[icluster]]
 ##################################
 pz_lst = []
 for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,init_cluster,init_r200):
@@ -139,17 +145,18 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
     #crt = crt[crt["flux_ivar_i"]**(-(1/2))<10**(0.1/2.5)]     #sig_mag < 0.1 cut
     crt["N_ID"] = np.linspace(0,len(crt)-1,len(crt),dtype="int")   #give identifier label
     #########ds9reg#########
-    t = open(cluster+"/"+cluster+".reg","w")
-    t.write("# Region file format: DS9 version 4.1\n")
-    t.write("global color=green dashlist=8 3 width=1 font=\"helvetica 10 normal roman\" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n")
-    t.write("fk5\n")
-    for i in range(len(crt)):
-        t.write("circle("+str(crt["ra"][i])+","+str(crt["dec"][i])+",7.920\")\n")
-    t.close()
-    pth = cluster+"/"+brick_lst[0]+"/coadd/"+brick_lst[0]+"/"
-    bnum = 0
-    print("#----------"+str(r2cut)+"R200 data / ds9 region")
-    print("ds9 -rgb -red "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-i.fits.fz -linear -scale 99.5 -blue "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-g.fits.fz -linear -scale 99.5 -green "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-r.fits.fz -linear -scale 99.5 -region "+cluster+"/"+cluster+".reg &")
+    if "coadd" in os.listdir(cluster+"/"+brick_lst[0]):
+        t = open(cluster+"/"+cluster+".reg","w")
+        t.write("# Region file format: DS9 version 4.1\n")
+        t.write("global color=green dashlist=8 3 width=1 font=\"helvetica 10 normal roman\" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n")
+        t.write("fk5\n")
+        for i in range(len(crt)):
+            t.write("circle("+str(crt["ra"][i])+","+str(crt["dec"][i])+",7.920\")\n")
+        t.close()
+        pth = cluster+"/"+brick_lst[0]+"/coadd/"+brick_lst[0]+"/"
+        bnum = 0
+        print("#----------"+str(r2cut)+"R200 data / ds9 region")
+        print("ds9 -rgb -red "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-i.fits.fz -linear -scale 99.5 -blue "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-g.fits.fz -linear -scale 99.5 -green "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-r.fits.fz -linear -scale 99.5 -region "+cluster+"/"+cluster+".reg &")
     ########################
     cmr = Table.read("/home/n0d3j1tqu0/Programs/easyGalaxy/cmr_z_DES_griz_zf3_0p4decay_chab_new",format="ascii")
     cmr = cmr[1:]   #remove some nan values in the model
@@ -170,8 +177,9 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
         res_lst = []
         lab_lst = []
         sig_lst = []
+        err_lst = []
         for mredder, mbluer, lcut, rlab, blab in zip(mr,mb,zlcut,zrlab,zblab):
-            lcrt = crt[crt["m_"+rlab]<=lcut+2]
+            lcrt = crt[crt["m_"+rlab]<=lcut+3]
             lcrt = lcrt[lcrt["m_"+rlab]>=lcut-4]
             lcrt = lcrt[lcrt["mag_"+rlab+"_err"]<0.1]    #sig_mag < 0.1 hennig17
             redder = np.array(lcrt["m_"+rlab])
@@ -183,6 +191,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
                 if len(lcrt)!=0:
                     lcrt = Table(lcrt[0])
                     lcrt.remove_row(0)
+                err_lst += [0.0]
                 sig_lst += [0.0]
                 res_lst += [lcrt]
                 lab_lst += [blab+rlab]
@@ -207,6 +216,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
                 if len(clip)!=0:
                     clip = Table(clip[0])
                     clip.remove_row(0)
+                err_lst += [0.0]
                 sig_lst += [0.0]
                 res_lst += [clip]
                 lab_lst += [blab+rlab]
@@ -236,10 +246,12 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
                 if len(clip)!=0: 
                     clip = Table(clip[0])
                     clip.remove_row(0)
+                err_lst += [0.0]
                 sig_lst += [0.0]
                 res_lst += [clip]
                 lab_lst += [blab+rlab]
                 continue
+            err_lst += [np.median(clip["devs_err"])]
             sig_lst += [sig]
             res_lst += [clip]
             lab_lst += [blab+rlab]
@@ -291,8 +303,13 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
         #glakoon = join(crt,grand_tab,"N_ID")
         #thing = np.sum(glakoon["res_sum"]**2)/len(glakoon)-6
         ########################################################
-        zcl_lst += [[cmr["col1"][i],chi2,]]
-    ztab = Table(np.reshape(zcl_lst,[len(zcl_lst),2]))
+        main_sig = sig_lst[np.array(cweight).argmax()]
+        N_clip = len(res_lst[np.array(cweight).argmax()])
+        main_err = err_lst[np.array(cweight).argmax()]
+        zcl_lst += [[cmr["col1"][i],chi2,main_sig,N_clip,main_err]]
+    ztab = Table(np.reshape(zcl_lst,[len(zcl_lst),5]))
+    ztab["col5"] = ztab["col3"]/(ztab["col2"]*ztab["col4"])
+    ztab["col5"][Table.Column(ztab["col5"],dtype="str")=="nan"] = 0.0
 
     plt.clf()
     iztab = ztab[ztab["col1"]!=99.0]
@@ -311,7 +328,25 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
     plt.savefig(cluster+"/"+brick_lst[0]+"_chi2.jpg")
     plt.close()
     #plt.show()
-    
+
+    plt.clf()
+    iztab = ztab[ztab["col5"]!=99.0]
+    plt.scatter(iztab["col0"],iztab["col5"],s=5,label="combined chi2")
+    #iztab = ztab[ztab["col2"]!=99.0]
+    #plt.scatter(iztab["col0"],iztab["col2"],s=5,label="r-i")
+    #iztab = ztab[ztab["col3"]!=99.0]
+    #plt.scatter(iztab["col0"],iztab["col3"],s=5,label="i-z")
+    #iztab = ztab[ztab["col4"]!=99.0]
+    #plt.scatter(iztab["col0"],iztab["col4"],s=5,label="r-z")
+    #iztab = ztab[ztab["col5"]!=99.0]
+    #plt.scatter(iztab["col0"],iztab["col5"],s=5,label="g-z")
+    plt.xlabel("z")
+    plt.ylabel(r"N$_{fit}$/$\sigma_{fit}\bar{\Delta m}$")
+    plt.legend()
+    plt.savefig(cluster+"/"+brick_lst[0]+"_Nsigerr.jpg")
+    plt.close()
+    #plt.show()
+
     zt = ztab[ztab["col1"]!=0.0]
     pz = zt[zt["col1"]==np.min(zt["col1"])]["col0"][0]
     print("photo-z: "+str(pz))
@@ -336,7 +371,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
     res_lst = []
     lab_lst = []
     for mredder, mbluer, lcut, rlab, blab in zip(mr,mb,zlcut,zrlab,zblab):
-        lcrt = crt[crt["m_"+rlab]<=lcut+2]
+        lcrt = crt[crt["m_"+rlab]<=lcut+3]
         lcrt = lcrt[lcrt["m_"+rlab]>=lcut-4]
         lcrt = lcrt[lcrt["mag_"+rlab+"_err"]<0.1]    #sig_mag < 0.1 hennig17
         redder = np.array(lcrt["m_"+rlab])
@@ -410,7 +445,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
     rlab = band[1]
     blab = band[0]
     lcut = [cmr["col16"][i],cmr["col17"][i],cmr["col18"][i],cmr["col18"][i],cmr["col18"][i]][wid.index(np.max(wid))]
-    lcrt = crt[crt["m_"+rlab]<=lcut+2]
+    lcrt = crt[crt["m_"+rlab]<=lcut+3]
     lcrt = lcrt[lcrt["m_"+rlab]>=lcut-4]
     lcrt = lcrt[lcrt["mag_"+rlab+"_err"]<0.1]    #sig_mag < 0.1 hennig17
     redder = np.array(lcrt["m_"+rlab])
@@ -434,39 +469,6 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
     plt.rcParams['ytick.major.size'] = 7
     plt.rcParams['ytick.minor.size'] = 3
 
-    plt.clf()     #plotting _zmodel.jpg
-    fig, ax = plt.subplots()#subplot_kw={'aspect': 'equal'})
-    ax.scatter(crt["m_"+rlab],crt["m_"+blab]-crt["m_"+rlab],s=5,c="black",label=str(r2cut)+"R200 galaxies")
-    ax.scatter(clip["redder"],clip["real_yrcs"],s=5,c="red",label="clipped RS")
-    #ax.scatter(bcg_row["MOF_BDF_MAG_I_CORRECTED"],bcg_row["MOF_BDF_MAG_R_CORRECTED"]-bcg_row["MOF_BDF_MAG_I_CORRECTED"],s=70,marker="^",color="none",edgecolor="black",label="BCG",zorder=5)
-    x = np.linspace(min(redder),max(redder),len(redder))
-    ax.plot(x,linear(x,Ares,Bres),color="red",label="RED SEQUENCE MODEL, z="+str(pz))
-    ax.plot(x,linear(x,Ares,Bres)+0.22,ls="--",color="red")
-    ax.plot(x,linear(x,Ares,Bres)-0.22,ls="--",color="red")
-    #red_gal = Table(crt[0])
-    #red_gal.remove_row(0)
-    #blue_gal = Table(crt[0])
-    #blue_gal.remove_row(0)
-    #for i in range(len(crt)):
-    #    if crt["m_r"][i]-crt["m_i"][i] <= linear(crt["m_i"][i],Ares,Bres)+0.22 and crt["m_r"][i]-crt["m_i"][i] >= linear(crt["m_i"][i],Ares,Bres)-0.22:
-    #        red_gal.add_row(crt[i])
-    #    if crt["m_r"][i]-crt["m_i"][i] < linear(crt["m_i"][i],Ares,Bres)-0.22:
-    #        blue_gal.add_row(crt[i])
-    #ax.scatter(red_gal["m_i"],red_gal["m_r"]-red_gal["m_i"],s=14,marker="s",color="red",label="RED")
-    #ax.scatter(blue_gal["m_i"],blue_gal["m_r"]-blue_gal["m_i"],s=12,marker="s",color="blue",label="BLUE")
-    ax.set_ylim([-0.5,2])
-    ax.set_xlim([15,27])
-    ax.tick_params(top=True,right=True)
-    ax.tick_params(which="minor",top=True,right=True)
-    plt.xlabel(rlab)
-    plt.ylabel(blab+"-"+rlab)
-    plt.title(cluster)
-    plt.minorticks_on()
-    plt.legend(fontsize=7)
-    plt.tight_layout()
-    plt.savefig(cluster+"/"+brick_lst[0]+"_zmodel.jpg")
-    plt.close()
-    #plt.show()
     #############################################################
     #-------------------------------------get R200 data within +-0.22 mags from z-model
     gredder = np.array(gcrt["m_"+rlab])   
@@ -490,28 +492,30 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
     redgal["is_bcg"] = Table.Column(truecat,dtype="bool")    #create column denoting BCG
     redgal.write(cluster+"/"+cluster+"_redsequence.cat",format="ascii",overwrite=True)   #save table
     #########ds9reg#########
-    t = open(cluster+"/"+cluster+"_bcg.reg","w")
-    t.write("# Region file format: DS9 version 4.1\n")
-    t.write("global color=green dashlist=8 3 width=1 font=\"helvetica 10 normal roman\" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n")
-    t.write("fk5\n")
-    t.write("circle("+str(RA)+","+str(dec)+","+str(r200.to(u.arcsec).value)+"\") # color=red text={R200}\n")
-    for r in range(len(redgal)):
-        if redgal["is_bcg"][r]==True:
-            t.write("circle("+str(redgal["ra"][r])+","+str(redgal["dec"][r])+",5.000\") # color=red text={m_"+rlab+" = "+str(np.around(redgal["m_"+rlab][r],2))+"}\n")
-        else: 
-            t.write("circle("+str(redgal["ra"][r])+","+str(redgal["dec"][r])+",5.000\")\n")
-    t.close()
-    pth = cluster+"/"+brick_lst[0]+"/coadd/"+brick_lst[0]+"/"
-    bnum = 0
-    print("#----------R200 data with BCGs / ds9 region")
-    print("ds9 -rgb -red "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-i.fits.fz -linear -scale 99.5 -blue "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-g.fits.fz -linear -scale 99.5 -green "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-r.fits.fz -linear -scale 99.5 -region "+cluster+"/"+cluster+"_bcg.reg &")
+    if "coadd" in os.listdir(cluster+"/"+brick_lst[0]):
+        t = open(cluster+"/"+cluster+"_bcg.reg","w")
+        t.write("# Region file format: DS9 version 4.1\n")
+        t.write("global color=green dashlist=8 3 width=1 font=\"helvetica 10 normal roman\" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n")
+        t.write("fk5\n")
+        t.write("circle("+str(RA)+","+str(dec)+","+str(r200.to(u.arcsec).value)+"\") # color=red text={R200}\n")
+        for r in range(len(redgal)):
+            if redgal["is_bcg"][r]==True:
+                t.write("circle("+str(redgal["ra"][r])+","+str(redgal["dec"][r])+",5.000\") # color=red text={m_"+rlab+" = "+str(np.around(redgal["m_"+rlab][r],2))+"}\n")
+            else: 
+                t.write("circle("+str(redgal["ra"][r])+","+str(redgal["dec"][r])+",5.000\")\n")
+        t.close()
+        pth = cluster+"/"+brick_lst[0]+"/coadd/"+brick_lst[0]+"/"
+        bnum = 0
+        print("#----------R200 data with BCGs / ds9 region")
+        print("ds9 -rgb -red "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-i.fits.fz -linear -scale 99.5 -blue "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-g.fits.fz -linear -scale 99.5 -green "+pth+"legacysurvey-"+brick_lst[bnum]+"-image-r.fits.fz -linear -scale 99.5 -region "+cluster+"/"+cluster+"_bcg.reg &")
     ########################
     ##########################PLOTTING############################
     #---------------------------------------
     plt.clf()     #plotting _cmd.jpg
     fig, ax = plt.subplots()#subplot_kw={'aspect': 'equal'})
     ax.scatter(gcrt["m_"+rlab],gcrt["m_"+blab]-gcrt["m_"+rlab],s=5,c="black",label="R200 galaxies")
-    ax.scatter(redgal["m_"+rlab],redgal["m_"+blab]-redgal["m_"+rlab],s=5,c="red",label="RED GALAXIES")
+    ax.scatter(clip["redder"],clip["real_yrcs"],s=5,c="red",label="clipped RS")
+    #ax.scatter(redgal["m_"+rlab],redgal["m_"+blab]-redgal["m_"+rlab],s=5,c="red",label="RED GALAXIES")
     bcgtab = redgal[redgal["is_bcg"]==True]
     bcgtab.sort("m_"+rlab)
     for r in range(len(bcgtab)):
@@ -525,7 +529,7 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
         lst = d.separation(catalog).to(u.arcmin)
         grcrt["PRJ_SEP"] = lst
         fbz20 = grcrt[grcrt["PRJ_SEP"]==np.min(grcrt["PRJ_SEP"])]
-        ax.scatter(fbz20["m_"+rlab][0],fbz20["m_"+blab][0]-fbz20["m_"+rlab][0],s=20,c="none",edgecolor="yellow",marker="s",label="BCG Z20")
+        ax.scatter(fbz20["m_"+rlab][0],fbz20["m_"+blab][0]-fbz20["m_"+rlab][0],s=20,c="none",edgecolor="cyan",marker="s",label="BCG Z20")
     #------------
     #ax.scatter(bcg_row["MOF_BDF_MAG_I_CORRECTED"],bcg_row["MOF_BDF_MAG_R_CORRECTED"]-bcg_row["MOF_BDF_MAG_I_CORRECTED"],s=70,marker="^",color="none",edgecolor="black",label="BCG",zorder=5)
     x = np.linspace(min(redgal["m_"+rlab]),max(redgal["m_"+rlab]),len(redgal))
@@ -551,6 +555,11 @@ for RA, DEC, brick_lst, cluster, r200 in zip(init_RA,init_DEC,init_brick_lst,ini
 pztab = Table([init_cluster,pz_lst])
 pztab.write("photo-z",format="ascii")
 
+######################################END######################################
+
+
+
+#################USEFUL_THINGS###############################
 #crt = Table.read("Datatable.latex",format="latex")
 #crt["col0"] = ("SPT-CL"+" SPT-CL".join(crt["SPT-CL"])).split(" ")
 #crt = join(pztab,crt)
@@ -560,7 +569,6 @@ pztab.write("photo-z",format="ascii")
 #ax_scatter = plt.axes([0.1,0.3,0.82,0.56])
 #ax_scatter.plot(np.linspace(0,1),np.linspace(0,1),color="black")
 #ax_scatter.scatter(crt["z"],crt["photo-z"])
-##plt.errorbar(crt["z"],crt["photo-z"],xerr=crt["z_err"],fmt="none",color="black",capsize=1)
 #ax_scatter.set_xlim([0.2,0.8])
 #ax_scatter.set_ylim([0.2,0.8])
 #ax_scatter.set_xlabel("spec-z")
